@@ -11,27 +11,17 @@
     </nav>
 </template>
 
-<script>
+<script setup>
+import { computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 
-export default {
-    name: 'NavBar',
-    computed: {
-        isLoggedIn(){
-            const userStore = useAuthStore();
-            return userStore.isLoggedIn;
-        },
-        getUserName(){
-            const userStore = useAuthStore();
-            return userStore.getUserName;
-        }
-    },
-    methods: {
-        logout(){
-            const userStore = useAuthStore();
-            userStore.logout();
-        }
-    }
+const userStore = useAuthStore();
+
+const isLoggedIn = computed(() => userStore.isLoggedIn);
+const getUserName = computed(() => userStore.getUserName);
+
+const logout = () => {
+    userStore.logout();
 };
 </script>
 

@@ -13,29 +13,29 @@
     </div>
 </template>
 
-<script>
-export default {
-    props: {
-        news: {
-            type: Object,
-            required: true
-        },
-        visible: {
-            type: Boolean,
-            default: false
-        }
+<script setup>
+import { computed } from 'vue';
+
+const props = defineProps({
+    news: {
+        type: Object,
+        required: true
     },
-    methods: {
-        close() {
-            this.$emit('update:visible', false);
-        }
-    },
-    computed:{
-        formattedContent() {
-            if(!this.news.content) return '';
-            return this.news.content.split('\r\n');
-        }
+    visible: {
+        type: Boolean,
+        default: false
     }
+});
+
+const emit = defineEmits(['update:visible']);
+
+const formattedContent = computed(() => {
+    if (!props.news.content) return '';
+    return props.news.content.split('\r\n');
+});
+
+const close = () => {
+    emit('update:visible', false);
 };
 </script>
 
