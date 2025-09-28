@@ -50,6 +50,9 @@ const props = defineProps({
 const categoryName = computed(() => Categories[props.category]);
 
 const latestDataTime = computed(() => {
+    if (!props.priceData || props.priceData.length === 0) {
+        return '';
+    }
     let timeTmp = props.priceData[0].時間終點.split('-');
     return timeTmp[0] + '.' + timeTmp[1];
 });
