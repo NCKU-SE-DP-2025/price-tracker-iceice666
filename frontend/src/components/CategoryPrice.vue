@@ -1,24 +1,26 @@
 <template>
     <div class="category-price-wrapper">
         <h2>{{ categoryName }}</h2>
-        <div v-if="isLoading">Loading...</div>
+        <div v-if="isLoading" class="loading">Loading...</div>
         <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
-        <table v-if="!isLoading && !errorMessage">
-            <thead>
-                <tr>
-                    <th>商品名稱</th>
-                    <th>規格</th>
-                    <th>{{latestDataTime}} 最新價格</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="data in priceData" :key="data.編號">
-                    <td>{{ data.產品名稱 }}</td>
-                    <td>{{ data.規格 }}</td>
-                    <td>{{ latestPrice(data.統計值) }}</td>
-                </tr>
-            </tbody>
-        </table>
+        <div v-if="!isLoading && !errorMessage" class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>商品名稱</th>
+                        <th>規格</th>
+                        <th>{{latestDataTime}} 最新價格</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="data in priceData" :key="data.編號">
+                        <td>{{ data.產品名稱 }}</td>
+                        <td>{{ data.規格 }}</td>
+                        <td>{{ latestPrice(data.統計值) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </template>
 
@@ -65,30 +67,107 @@ const latestPrice = (prices_str) => {
 <style scoped>
 .error {
     color: red;
+    padding: 1em;
+    text-align: center;
 }
+
+.category-price-wrapper {
+    background-color: white;
+    border-radius: 1em;
+    padding: 1em;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+h2 {
+    margin-bottom: .5em;
+    font-size: 1.2em;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Table container with horizontal scroll for mobile */
+.table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 0.5em;
+    margin-top: 1em;
+}
+
 table {
     width: 100%;
+    min-width: 300px;
     border-collapse: collapse;
     background-color: white;
-    /* text-align: center; */
 }
+
 th, td {
     border: 1px solid #ddd;
     text-align: center;
-    padding: .5em 1em;
+    padding: .5em .75em;
+    white-space: nowrap;
+    font-size: 0.9em;
 }
-th{
+
+th {
     background-color: #355f81;
     color: white;
-}
-h2{
-    margin-bottom: .5em;
-    font-size: 1.5em;
     font-weight: bold;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
-.category-price-wrapper{
-    background-color: white;
-    border-radius: 1em;
+
+td {
+    min-width: 80px;
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+    .category-price-wrapper {
+        padding: 1.5em;
+    }
+
+    h2 {
+        font-size: 1.4em;
+    }
+
+    th, td {
+        padding: .75em 1em;
+        font-size: 1em;
+    }
+
+    table {
+        min-width: 400px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .category-price-wrapper {
+        padding: 2em;
+    }
+
+    h2 {
+        font-size: 1.5em;
+    }
+
+    .table-container {
+        overflow-x: visible;
+    }
+
+    table {
+        min-width: auto;
+    }
+}
+
+/* Loading and error states */
+.loading, .error {
     padding: 2em;
+    text-align: center;
+    font-size: 1.1em;
+}
+
+.loading {
+    color: #666;
 }
 </style>

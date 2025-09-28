@@ -1,23 +1,25 @@
 <template>
     <div class="trending-table">
-        <table>
-            <thead>
-                <tr>
-                    <th rowspan="2">年份</th>
-                    <th v-for="month in months" :key="month">{{ month }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                <template v-for="year in years" :key="year">
+        <div class="table-container">
+            <table>
+                <thead>
                     <tr>
-                        <td>{{ year }}</td>
-                        <template v-for="(value, monthIndex) in getYearData(year)" :key="year + '-month-' + monthIndex">
-                            <td>{{ valueDisplay(value) }}</td>
-                        </template>
+                        <th rowspan="2" class="year-header">年份</th>
+                        <th v-for="month in months" :key="month" class="month-header">{{ month }}</th>
                     </tr>
-                </template>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <template v-for="year in years" :key="year">
+                        <tr>
+                            <td class="year-cell">{{ year }}</td>
+                            <template v-for="(value, monthIndex) in getYearData(year)" :key="year + '-month-' + monthIndex">
+                                <td class="value-cell">{{ valueDisplay(value) }}</td>
+                            </template>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
     </div>
 </template>
 
@@ -87,18 +89,127 @@ onMounted(() => {
 
 <style scoped>
 .trending-table {
-    margin-top: 2em;
+    margin-top: 1em;
+    overflow: hidden;
+    border-radius: 0.5em;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 table {
     width: 100%;
+    min-width: 600px;
     border-collapse: collapse;
+    background-color: white;
 }
 
-th,
-td {
-    border: 1px solid #ccc;
-    padding: 0.5em;
+th, td {
+    border: 1px solid #ddd;
+    padding: 0.3em;
     text-align: center;
+    font-size: 0.8em;
+    white-space: nowrap;
+}
+
+th {
+    background-color: #355f81;
+    color: white;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.year-header, .year-cell {
+    background-color: #4a6fa5;
+    color: white;
+    font-weight: bold;
+    position: sticky;
+    left: 0;
+    z-index: 20;
+    min-width: 60px;
+}
+
+.year-cell {
+    background-color: #5a7fb5;
+}
+
+.month-header {
+    min-width: 50px;
+}
+
+.value-cell {
+    min-width: 50px;
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+    .trending-table {
+        margin-top: 2em;
+    }
+
+    table {
+        min-width: 800px;
+    }
+
+    th, td {
+        padding: 0.5em;
+        font-size: 0.9em;
+    }
+
+    .year-header, .year-cell {
+        min-width: 80px;
+    }
+
+    .month-header, .value-cell {
+        min-width: 60px;
+    }
+}
+
+@media (min-width: 1024px) {
+    table {
+        min-width: 1000px;
+    }
+
+    th, td {
+        padding: 0.5em;
+        font-size: 1em;
+    }
+
+    .year-header, .year-cell {
+        min-width: 100px;
+    }
+
+    .month-header, .value-cell {
+        min-width: 70px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .table-container {
+        overflow-x: visible;
+    }
+
+    table {
+        min-width: auto;
+    }
+}
+
+/* Scroll indicators for mobile */
+@media (max-width: 767px) {
+    .table-container::after {
+        content: '← 滑動查看更多 →';
+        display: block;
+        text-align: center;
+        padding: 0.5em;
+        background-color: #f8f9fa;
+        font-size: 0.8em;
+        color: #666;
+        border-top: 1px solid #ddd;
+    }
 }
 </style>

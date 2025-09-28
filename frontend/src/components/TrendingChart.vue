@@ -94,8 +94,43 @@ watch(() => props.data, (newData, oldData) => {
 <style scoped>
 .chart-container {
     position: relative;
-    margin: auto;
-    height: 30vh;
-    width: 100wh;
+    margin: 1em auto;
+    height: 250px;
+    width: 100%;
+    background-color: white;
+    border-radius: 0.5em;
+    padding: 1em;
+    box-sizing: border-box;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+    .chart-container {
+        height: 300px;
+        padding: 1.5em;
+    }
+}
+
+@media (min-width: 1024px) {
+    .chart-container {
+        height: 350px;
+        padding: 2em;
+    }
+}
+
+@media (min-width: 1200px) {
+    .chart-container {
+        height: 400px;
+    }
+}
+
+/* Mobile landscape optimization */
+@media (max-width: 767px) and (orientation: landscape) {
+    .chart-container {
+        height: 200px;
+        padding: 0.5em;
+    }
 }
 </style>
