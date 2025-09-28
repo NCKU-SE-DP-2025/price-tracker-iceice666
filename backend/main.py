@@ -1,4 +1,5 @@
 import json
+import logging
 import sentry_sdk
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi.middleware.cors import CORSMiddleware
@@ -520,7 +521,48 @@ def news_exists(id2, db: Session):
 def get_necessities_prices(
         category=Query(None), commodity=Query(None)
 ):
-    return requests.get(
-        "https://opendata.ey.gov.tw/api/ConsumerProtection/NecessitiesPrice",
-        params={"CategoryName": category, "Name": commodity},
-    ).json()
+    try:
+        url = "https://opendata.ey.gov.tw/api/ConsumerProtection/NecessitiesPrice"
+        params = {"CategoryName": category, "Name": commodity}
+
+        logging.info(f"Fetching necessities prices from {url} with params: {params}")
+
+        response = requests.get(url, params=params, timeout=30)
+
+        if response.status_code != 200:
+            logging.error(f"API returned status code {response.status_code}: {response.text}")
+            if response.status_code >= 500:
+                raise HTTPException(
+                    status_code=502,
+                    detail="The price data service is temporarily unavailable."
+                )
+            else:
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Unable to retrieve price data (Error {response.status_code})."
+                )
+
+        if not response.content:
+            logging.error("API returned empty response")
+            raise HTTPException(
+                status_code=502,
+                detail="No price data was returned from the service. This might indicate the requested items are not available."
+            )
+
+        try:
+            data = response.json()
+            logging.info(f"Successfully fetched {len(data) if isinstance(data, list) else 'data'} from API")
+            return data
+        except json.JSONDecodeError as e:
+            logging.error(f"Failed to decode JSON response: {e}. Response content: {response.text[:500]}")
+            raise HTTPException(
+                status_code=502,
+                detail="The price data service returned an invalid response format."
+            )
+
+    except BaseException as e:
+        logging.error(f"Request to external API failed: {e}")
+        raise HTTPException(
+            status_code=502,
+            detail="Failed to retrieve price data."
+        )

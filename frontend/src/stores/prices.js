@@ -46,7 +46,16 @@ export const usePricesStore = defineStore('prices', {
                     hour12: false
                 }).replace(/(\d{4})\/(\d{2})\/(\d{2}), (\d{2}):(\d{2}):(\d{2})/, "$1/$2/$3 $4:$5");
             } catch (error) {
-                this.errorMessage = 'Error fetching prices: ' + error.message;
+                // Extract detailed error message from backend response
+                if (error.response && error.response.data && error.response.data.detail) {
+                    this.errorMessage = error.response.data.detail;
+                } else if (error.response && error.response.status) {
+                    this.errorMessage = `Failed to fetch prices (HTTP ${error.response.status}). Please try again later.`;
+                } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+                    this.errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+                } else {
+                    this.errorMessage = 'Error fetching prices: ' + error.message;
+                }
             } finally {
                 this.isLoading = false;
             }
