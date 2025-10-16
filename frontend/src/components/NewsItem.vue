@@ -23,142 +23,219 @@
     </div>
 </template>
 
-<script>
+<script setup>
+import { computed, ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useNewsStore } from '@/stores/news';
-export default {
-    props: {
-        news: {
-            type: Object,
-            required: true
-        }
-    },
-    computed: {
-        hasDetails() {
-            return this.news.reason && this.news.summary;
-        },
-        shortContent() {
-            return this.news.content.length > 200 ? this.news.content.substr(0, 200) + '...' : this.news.content;
-        },
-        isLoggedIn(){
-            const userStore = useAuthStore();
-            return userStore.isLoggedIn;
-        }
-    },
-    methods:{
-        showDialog(){
-            this.$emit('show-dialog');
-        },
-        fetchSummary(){
-            if(this.isLoading) return;
-            this.isLoading = true;
-            this.$emit('fetch-summary');
-        },
-        toggleUpvote(newsId){
-            useNewsStore().toggleUpvote(newsId);
-        }
+
+const props = defineProps({
+    news: {
+        type: Object,
+        required: true
     }
+});
+
+const emit = defineEmits(['show-dialog', 'fetch-summary']);
+
+const userStore = useAuthStore();
+const newsStore = useNewsStore();
+const isLoading = ref(false);
+
+const hasDetails = computed(() => props.news.reason && props.news.summary);
+const shortContent = computed(() =>
+    props.news.content.length > 200 ? props.news.content.substr(0, 200) + '...' : props.news.content
+);
+const isLoggedIn = computed(() => userStore.isLoggedIn);
+
+const showDialog = () => {
+    emit('show-dialog');
+};
+
+const fetchSummary = () => {
+    if (isLoading.value) return;
+    isLoading.value = true;
+    emit('fetch-summary');
+};
+
+const toggleUpvote = (newsId) => {
+    newsStore.toggleUpvote(newsId);
 };
 </script>
 
 <style scoped>
 .news-item {
     padding: 1em;
+    border-radius: 0.5em;
+    transition: background-color 0.2s;
+}
+
+.news-item:hover {
+    background-color: rgba(0, 0, 0, 0.02);
 }
 
 .news-item h2 {
-    margin: 0;
-    font-size: 1.5em;
+    margin: 0 0 0.5em 0;
+    font-size: 1.3em;
+    line-height: 1.4;
 }
 
 .news-item p {
     margin: .5em 0;
     text-align: start;
-    font-size: 1.1em;
+    font-size: 1em;
+    line-height: 1.5;
 }
 
 .news-item .time {
     color: #888;
+    font-size: 0.9em;
 }
 
-.container{
+.container {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1em;
 }
 
-.summary-btn{
-    font-size: 2em;
-    display: none;
-    cursor: pointer;
-}
-
-.summary-btn:hover{
-    color: #f0ad4e;
-}
-
-.news-item:hover .summary-btn{
-    display: block;
-}
-
-.texts{
-    padding: 1em;
+.texts {
+    flex: 1;
+    padding: 0.5em;
     border-radius: .5em;
-    margin-right: 1em;
-    width: 100%;
-}
-
-.texts:hover{
+    transition: background-color 0.2s;
     cursor: pointer;
-    background-color: rgba(0, 0, 0, 0.1);
 }
 
-.upvote-btn{
+.texts:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Always show summary button on mobile, hover on desktop */
+.summary-btn {
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 0.5em;
+    border-radius: 0.25em;
+    transition: all 0.2s;
+    color: #666;
+    min-width: 44px;
+    min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    padding: .5em 2em;
-    border-radius: 1em;
-    width: 3em;
-    height: 3em;
+    flex-shrink: 0;
 }
 
-.upvote-btn span{
+.summary-btn:hover {
+    color: #f0ad4e;
+    background-color: rgba(240, 173, 78, 0.1);
+}
+
+.upvote-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: .5em;
+    border-radius: 1em;
+    min-width: 44px;
+    min-height: 44px;
+    transition: background-color 0.2s;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.upvote-btn span {
     margin-left: .25em;
-    font-size: 1.2em;
-    color: rgba(0,0,0,0.5);
+    font-size: 1.1em;
+    color: rgba(0,0,0,0.6);
     font-weight: bold;
 }
 
-.upvote-btn:hover{
-    cursor: pointer;
+.upvote-btn:hover {
     background-color: rgba(0,0,0,0.1);
 }
 
-.upvote-btn > i{
-    font-size: 1.5em;
+.upvote-btn > i {
+    font-size: 1.3em;
     color: rgba(0,0,0,0.5);
 }
 
-.fire-upvoted{
+.fire-upvoted {
     color: #f6620c !important;
 }
 
 .loader {
-  width: 30px;
-  padding: 8px;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: #20A7E8;
-  --_m: 
-    conic-gradient(#0000 10%,#000),
-    linear-gradient(#000 0 0) content-box;
-  -webkit-mask: var(--_m);
-          mask: var(--_m);
-  -webkit-mask-composite: source-out;
-          mask-composite: subtract;
-  animation: l3 1s infinite linear;
+    width: 30px;
+    padding: 8px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: #20A7E8;
+    --_m:
+        conic-gradient(#0000 10%,#000),
+        linear-gradient(#000 0 0) content-box;
+    -webkit-mask: var(--_m);
+    mask: var(--_m);
+    -webkit-mask-composite: source-out;
+    mask-composite: subtract;
+    animation: l3 1s infinite linear;
 }
-@keyframes l3 {to{transform: rotate(1turn)}}
+
+@keyframes l3 {
+    to { transform: rotate(1turn) }
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+    .news-item h2 {
+        font-size: 1.5em;
+    }
+
+    .news-item p {
+        font-size: 1.1em;
+    }
+
+    .summary-btn {
+        font-size: 2em;
+        display: none;
+    }
+
+    .news-item:hover .summary-btn {
+        display: flex;
+    }
+
+    .upvote-btn {
+        width: 3em;
+        height: 3em;
+        padding: .5em 2em;
+    }
+
+    .upvote-btn span {
+        font-size: 1.2em;
+    }
+
+    .upvote-btn > i {
+        font-size: 1.5em;
+    }
+
+    .texts {
+        padding: 1em;
+        margin-right: 1em;
+    }
+}
+
+@media (max-width: 767px) {
+    .container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .summary-btn {
+        align-self: center;
+        margin-top: 0.5em;
+    }
+
+    .upvote-btn {
+        align-self: center;
+        margin-top: 0.5em;
+    }
+}
 </style>

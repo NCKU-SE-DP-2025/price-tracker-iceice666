@@ -19,105 +19,152 @@
     </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, onMounted } from 'vue';
 import { useNewsStore } from '@/stores/news';
-import { onMounted } from 'vue';
 import NewsItem from '@/components/NewsItem.vue';
 import NewsDialog from '@/components/NewsDialog.vue';
 
-export default {
-    components: {
-        NewsItem,
-        NewsDialog
-    },
-    data() {
-        return {
-            prompt: '',
-            newsStore: useNewsStore(),
-            selectedNews: null,
-            isDialogVisible: false
-        };
-    },
-    created() {
-        onMounted(() => {
-            this.newsStore.fetchNews();
-        });
-    },
-    computed: {
-        newsList() {
-            return this.newsStore.getNews;
-        },
-        isLoading() {
-            return this.newsStore.isLoading;
-        },
-        isEmpty() {
-            return this.newsStore.newsList.length === 0;
-        }
-    },
-    methods: {
-        searchNewsBasedOnPrompt() {
-            if (this.prompt.trim()) {
-                this.newsStore.promptSearchNews(this.prompt);
-                this.prompt = '';
-            }
-        },
-        showDialog(news) {
-            this.selectedNews = news;
-            this.isDialogVisible = true;
-        },
-        fetchSummary(content, index){
-            this.newsStore.fetchNewsSummary(content, index);
-        }
+const newsStore = useNewsStore();
+
+const prompt = ref('');
+const selectedNews = ref(null);
+const isDialogVisible = ref(false);
+
+const newsList = computed(() => newsStore.getNews);
+const isLoading = computed(() => newsStore.isLoading);
+const isEmpty = computed(() => newsStore.newsList.length === 0);
+
+const searchNewsBasedOnPrompt = () => {
+    if (prompt.value.trim()) {
+        newsStore.promptSearchNews(prompt.value);
+        prompt.value = '';
     }
 };
+
+const showDialog = (news) => {
+    selectedNews.value = news;
+    isDialogVisible.value = true;
+};
+
+const fetchSummary = (content, index) => {
+    newsStore.fetchNewsSummary(content, index);
+};
+
+onMounted(() => {
+    newsStore.fetchNews();
+});
 </script>
 
 <style scoped>
 .wrapper {
-    padding: 3em 5em;
+    padding: 1.5em 1em;
     background: #f3f3f3;
     min-height: calc(100vh - 4.5em);
     height: calc(100% - 4.5em);
     box-sizing: border-box;
     width: 100%;
 }
+
 .content {
     background-color: white;
     margin-top: 1em;
     border-radius: 1em;
-    padding: 1em 3em;
+    padding: 1em;
 }
-.news-item{
+
+.news-item {
     border-bottom: #aaaaaa 1px solid;
 }
-.news-item:last-child{
+
+.news-item:last-child {
     border-bottom: none;
 }
-.search-bar{
+
+.search-bar {
     background-color: white;
-    display: inline-flex;
+    display: flex;
     border-radius: .5em;
     box-sizing: border-box;
     text-align: start;
     margin-top: 1em;
     padding: 1em;
-    width: 80%;
+    width: 100%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.search-bar input{
+.search-bar input {
     border: none;
     outline: none;
-    font-size: .9em;
+    font-size: 0.9em;
     box-sizing: border-box;
     flex-grow: 1;
     margin-right: 1em;
+    min-width: 0;
 }
 
-.search-bar i{
+.search-bar input::placeholder {
+    font-size: 0.8em;
+    color: #999;
+}
+
+.search-bar i {
+    cursor: pointer;
+    padding: 0.5em;
+    border-radius: 0.25em;
+    transition: background-color 0.2s;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-bar i:hover {
+    background-color: rgba(0,0,0,0.1);
+}
+
+.search-bar button:hover {
     cursor: pointer;
 }
 
-.search-bar button:hover{
-    cursor: pointer;
+/* Responsive Design */
+@media (min-width: 768px) {
+    .wrapper {
+        padding: 2em 2em;
+    }
+
+    .content {
+        padding: 1em 2em;
+    }
+
+    .search-bar {
+        width: 80%;
+        max-width: 600px;
+    }
+
+    .search-bar input {
+        font-size: 0.9em;
+    }
+
+    .search-bar input::placeholder {
+        font-size: 0.9em;
+    }
+}
+
+@media (min-width: 1024px) {
+    .wrapper {
+        padding: 3em 3em;
+    }
+
+    .content {
+        padding: 1em 3em;
+    }
+}
+
+@media (min-width: 1200px) {
+    .wrapper {
+        padding: 3em 5em;
+    }
 }
 </style>

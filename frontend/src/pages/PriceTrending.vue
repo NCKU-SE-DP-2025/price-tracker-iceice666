@@ -22,62 +22,46 @@
     </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue';
 import { usePricesStore } from '@/stores/prices';
 import Categories from '@/constants/categories';
 import TrendingTable from '@/components/TrendingTable.vue';
 import TrendingChart from '@/components/TrendingChart.vue';
 
-export default {
-    components: {
-        TrendingTable,
-        TrendingChart
-    },
-    data() {
-        return {
-            selectedCategory: '',
-            selectedProduct: '',
-            productList: [],
-        };
-    },
-    computed: {
-        store() {
-            return usePricesStore();
-        },
-        categoryKeys() {
-            return Object.keys(Categories);
-        },
-        products() {
-            return this.selectedCategory ? this.store.getPricesByCategory(this.selectedCategory) : [];
-        },
-    },
-    methods: {
-        categoryName(category) {
-            return Categories[category];
-        }
-    },
-    watch: {
-        selectedCategory() {
-            this.selectedProduct = '';
-            const store = usePricesStore();
-            this.productList = store.getProductList(this.selectedCategory);
-            this.productData = null;
-        },
-        selectedProduct() {
-            console.log(this.selectedProduct);
-        }
-    },
-    created() {
-        const store = usePricesStore();
-        store.fetchPrices();
-    }
+const store = usePricesStore();
+
+const selectedCategory = ref('');
+const selectedProduct = ref('');
+const productList = ref([]);
+
+const categoryKeys = computed(() => Object.keys(Categories));
+const products = computed(() =>
+    selectedCategory.value ? store.getPricesByCategory(selectedCategory.value) : []
+);
+
+const categoryName = (category) => {
+    return Categories[category];
 };
+
+watch(selectedCategory, () => {
+    selectedProduct.value = '';
+    productList.value = store.getProductList(selectedCategory.value);
+});
+
+watch(selectedProduct, () => {
+    console.log(selectedProduct.value);
+});
+
+onMounted(() => {
+    store.fetchPrices();
+});
 </script>
 
 
 <style scoped>
 .wrapper {
-    padding: 3em 5em;
+    padding: 1.5em 1em;
     background: #f3f3f3;
     min-height: calc(100vh - 4.5em);
     height: calc(100% - 4.5em);
@@ -86,33 +70,93 @@ export default {
 }
 
 .content {
-    margin-top: 2em;
+    margin-top: 1em;
     background-color: #fff;
     border-radius: 1em;
-    padding: 2em;
+    padding: 1em;
     width: 100%;
+    box-sizing: border-box;
 }
-
 
 .selects {
     display: flex;
-    justify-content: flex-start;
+    flex-direction: column;
+    gap: 1em;
 }
 
-.selects>select {
-    padding: .5em;
-    font-size: 1.1em;
-    margin-right: 1em;
+.selects > select {
+    padding: 0.75em;
+    font-size: 1em;
     border-radius: .5em;
     border: 1px solid #ccc;
     outline: none;
     cursor: pointer;
     appearance: auto !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.visualize {
+    margin-top: 2em;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
 }
 
 .visualize > * {
-    flex: 1 1 50%;
+    width: 100%;
     box-sizing: border-box;
-    padding: 1em;
+    padding: 0;
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+    .wrapper {
+        padding: 2em 2em;
+    }
+
+    .content {
+        margin-top: 2em;
+        padding: 1.5em;
+    }
+
+    .selects {
+        flex-direction: row;
+        gap: 1em;
+    }
+
+    .selects > select {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .visualize {
+        flex-direction: row;
+    }
+
+    .visualize > * {
+        flex: 1 1 50%;
+        padding: 1em;
+    }
+}
+
+@media (min-width: 1024px) {
+    .wrapper {
+        padding: 3em 3em;
+    }
+
+    .content {
+        padding: 2em;
+    }
+
+    .selects > select {
+        font-size: 1.1em;
+    }
+}
+
+@media (min-width: 1200px) {
+    .wrapper {
+        padding: 3em 5em;
+    }
 }
 </style>
