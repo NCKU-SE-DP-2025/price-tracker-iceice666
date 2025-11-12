@@ -10,11 +10,11 @@ from src.config import settings
 from src.models.database import User
 from src.schemas.user import Token, UserAuth, UserResponse
 from src.services.auth_service import AuthService, create_access_token
-from src.utils.dependencies import get_auth_service, get_current_user
+from src.dependencies import get_auth_service, get_current_user
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/users", tags=["users"])
+router = APIRouter(tags=["users"])
 
 
 @router.post("/register", response_model=UserResponse)

@@ -9,14 +9,14 @@ from src.models.database import User
 from src.schemas.news import NewsSummaryRequest, NewsSummaryResponse, PromptRequest
 from src.services.ai_service import AIService
 from src.services.news_service import NewsService
-from src.utils.dependencies import get_ai_service, get_current_user, get_news_service
+from src.dependencies import get_ai_service, get_current_user, get_news_service
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/news", tags=["news"])
+router = APIRouter(tags=["news"])
 
 
-@router.get("/news")
+@router.get("/")
 def get_news(
     news_service: NewsService = Depends(get_news_service),
 ) -> list[dict[str, Any]]:

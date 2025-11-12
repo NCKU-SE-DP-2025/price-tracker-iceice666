@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = None
     openai_model: str = "gpt-3.5-turbo"
 
-    # JWT Authentication
-    jwt_secret_key: str
+    # JWT Authentication (If not )
+    jwt_secret_key: Optional[str] = None
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 

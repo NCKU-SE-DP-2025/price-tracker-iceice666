@@ -8,10 +8,10 @@ from passlib.context import CryptContext
 from sqlalchemy import create_engine, StaticPool
 from sqlalchemy.orm import sessionmaker
 
-from main import app
+from src.main import app
 from src.models.database import Base, NewsArticle, User
 from src.schemas.news import NewsSummaryRequest
-from src.utils.dependencies import get_db
+from src.dependencies import get_db
 
 SECRET_KEY = "1892dhianiandowqd0n"
 ALGORITHM = "HS256"

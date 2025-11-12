@@ -26,7 +26,17 @@ def create_access_token(
 
     Returns:
         Encoded JWT token
+
+    Raises:
+        HTTPException: If JWT_SECRET_KEY is not configured
     """
+    if not settings.jwt_secret_key:
+        logger.error("JWT_SECRET_KEY not configured - cannot create access token")
+        raise HTTPException(
+            status_code=500,
+            detail="Authentication is not properly configured. Please set JWT_SECRET_KEY in .env file"
+        )
+
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now() + expires_delta
@@ -52,8 +62,15 @@ def decode_token(token: str) -> str:
         Username from token
 
     Raises:
-        HTTPException: If token is invalid or expired
+        HTTPException: If token is invalid, expired, or JWT_SECRET_KEY is not configured
     """
+    if not settings.jwt_secret_key:
+        logger.error("JWT_SECRET_KEY not configured - cannot decode token")
+        raise HTTPException(
+            status_code=500,
+            detail="Authentication is not properly configured. Please set JWT_SECRET_KEY in .env file"
+        )
+
     try:
         payload = jwt.decode(
             token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
