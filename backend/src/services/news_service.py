@@ -12,6 +12,7 @@ from src.config import settings
 from src.repositories.news_repository import NewsRepository
 from src.services.ai_service import AIService
 from src.utils.web_scraper import WebScraper
+from src.utils.sanitizer import sanitize_html, sanitize_text
 
 logger = logging.getLogger(__name__)
 
@@ -113,19 +114,22 @@ class NewsService:
             logger.error(f"Failed to scrape article: {url}")
             return False
 
-        # Generate summary
+        # Sanitize content to prevent XSS attacks
         content_text = " ".join(article_data["content"])
-        summary_data = self.ai_service.generate_summary(content_text)
+        sanitized_content = sanitize_html(content_text)
 
-        # Store in database
+        # Generate summary with sanitized content
+        summary_data = self.ai_service.generate_summary(sanitized_content)
+
+        # Store in database with sanitized data
         try:
             self.news_repository.create_news_article(
                 url=url,
-                title=article_data["title"],
+                title=sanitize_text(article_data["title"]),  # Title should be plain text
                 time=article_data["time"],
-                content=content_text,
-                summary=summary_data["影響"],
-                reason=summary_data["原因"],
+                content=sanitized_content,  # HTML content sanitized
+                summary=sanitize_text(summary_data["影響"]),  # Summary as plain text
+                reason=sanitize_text(summary_data["原因"]),  # Reason as plain text
             )
             logger.info(f"Article stored successfully: {title}")
             return True

@@ -3,8 +3,11 @@
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
+from src.config import settings
 from src.models.database import User
 from src.schemas.news import NewsSummaryRequest, NewsSummaryResponse, PromptRequest
 from src.services.ai_service import AIService
@@ -14,6 +17,7 @@ from src.dependencies import get_ai_service, get_current_user, get_news_service
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["news"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("/")
@@ -90,8 +94,10 @@ def generate_news_summary(
 
 
 @router.post("/{news_id}/upvote")
+@limiter.limit(settings.rate_limit_voting)
 def upvote_news(
     news_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     news_service: NewsService = Depends(get_news_service),
 ) -> dict[str, str]:
@@ -99,6 +105,7 @@ def upvote_news(
 
     Args:
         news_id: News article ID
+        request: HTTP request (required for rate limiting)
         current_user: Current authenticated user
         news_service: News service
 
@@ -106,7 +113,7 @@ def upvote_news(
         Message indicating action taken
 
     Raises:
-        HTTPException: If article not found
+        HTTPException: If article not found or rate limit exceeded
     """
     message = news_service.toggle_upvote(news_id, current_user.id)
     return {"message": message}
