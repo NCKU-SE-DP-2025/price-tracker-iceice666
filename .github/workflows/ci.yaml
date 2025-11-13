@@ -3,14 +3,16 @@ name: CI Pipeline
 on:
   push:
     branches:
-      - 'main'
+      - '**'
+      - '!main'
   pull_request:
     branches:
-      - 'main'
+      - '**'
+      - '!main'
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: F74144757
 
     steps:
       - name: Checkout code
