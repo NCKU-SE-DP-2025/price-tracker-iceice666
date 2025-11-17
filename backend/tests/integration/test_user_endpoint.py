@@ -8,9 +8,8 @@ from sqlalchemy.orm import sessionmaker
 from src.main import app
 from src.models.database import Base, User
 from src.dependencies import get_db
+from src.config import settings
 
-SECRET_KEY = "1892dhianiandowqd0n"
-ALGORITHM = "HS256"
 # SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
@@ -59,14 +58,14 @@ def test_user(clear_users):
 
 @pytest.fixture(scope="module")
 def test_token(test_user):
-    access_token = jwt.encode({"sub": test_user.username}, SECRET_KEY, algorithm=ALGORITHM)
+    access_token = jwt.encode({"sub": test_user.username}, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
     return access_token
 
 
 def test_register_user():
     response = client.post("/api/v1/users/register", json={
         "username": "newuser",
-        "password": "newpassword"
+        "password": "NewPassword123!"
     })
 
     assert response.status_code == 200

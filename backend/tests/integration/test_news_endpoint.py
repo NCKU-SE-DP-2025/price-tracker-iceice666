@@ -12,9 +12,8 @@ from src.main import app
 from src.models.database import Base, NewsArticle, User
 from src.schemas.news import NewsSummaryRequest
 from src.dependencies import get_db
+from src.config import settings
 
-SECRET_KEY = "1892dhianiandowqd0n"
-ALGORITHM = "HS256"
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
 # Create password context for tests
@@ -60,13 +59,20 @@ def test_user(clear_users):
 @pytest.fixture(scope="module")
 def test_token(test_user):
     access_token = jwt.encode(
-        {"sub": test_user.username}, SECRET_KEY, algorithm=ALGORITHM
+        {"sub": test_user.username}, settings.jwt_secret_key, algorithm=settings.jwt_algorithm
     )
     return access_token
 
 
 @pytest.fixture(scope="module")
-def test_articles():
+def clear_articles():
+    with next(override_get_db()) as db:
+        db.query(NewsArticle).delete()
+        db.commit()
+
+
+@pytest.fixture(scope="module")
+def test_articles(clear_articles):
     with next(override_get_db()) as db:
         article_1 = NewsArticle(
             url="https://example.com/test-news-1",
@@ -98,7 +104,7 @@ def test_user_and_articles(test_user, test_articles):
 
 
 def test_read_news(test_articles):
-    response = client.get("/api/v1/news/news")
+    response = client.get("/api/v1/news/")
     assert response.status_code == 200
     json_response = response.json()
     assert len(json_response) == 2
@@ -139,7 +145,7 @@ def test_search_news(mocker):
     mock_openai(mocker, "keywords")
 
     mock_fetch_news_data = mocker.patch(
-        "src.services.news_service.NewsService.fetch_news_data",
+        "src.services.news_service.fetch_news_data",
         return_value=[{"titleLink": "http://example.com/news1"}],
     )
 
