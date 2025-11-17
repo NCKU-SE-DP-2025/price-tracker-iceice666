@@ -174,20 +174,52 @@ def test_search_news(mocker):
     assert data[0]["content"] == "This is a test paragraph."
 
 
-def test_news_summary(mocker, test_token):
+def test_news_summary(test_token):
+    from unittest.mock import Mock
+    from src.services.ai_service import AIService
+    from src.dependencies import get_ai_service
+
     headers = {"Authorization": f"Bearer {test_token}"}
     openai_response = json.dumps({"影響": "test impact", "原因": "test reason"})
-    mock_openai(mocker, openai_response)
 
-    request_body = NewsSummaryRequest(content="Test news content")
-    response = client.post(
-        "/api/v1/news/news_summary", json=request_body.model_dump(), headers=headers
-    )
+    # Create a mock AIService with mocked OpenAI client
+    mock_ai_service = AIService.__new__(AIService)
+    mock_ai_service.enabled = True
+    mock_ai_service.model = "gpt-3.5-turbo"
 
-    assert response.status_code == 200
-    json_response = response.json()
-    assert json_response["summary"] == "test impact"
-    assert json_response["reason"] == "test reason"
+    # Create mock OpenAI client
+    mock_client = Mock()
+    mock_message = Mock()
+    mock_message.content = openai_response
+
+    mock_choice = Mock()
+    mock_choice.message = mock_message
+
+    mock_completion = Mock()
+    mock_completion.choices = [mock_choice]
+
+    mock_client.chat.completions.create.return_value = mock_completion
+    mock_ai_service.client = mock_client
+
+    # Override the dependency
+    def override_get_ai_service():
+        return mock_ai_service
+
+    app.dependency_overrides[get_ai_service] = override_get_ai_service
+
+    try:
+        request_body = NewsSummaryRequest(content="Test news content")
+        response = client.post(
+            "/api/v1/news/news_summary", json=request_body.model_dump(), headers=headers
+        )
+
+        assert response.status_code == 200
+        json_response = response.json()
+        assert json_response["summary"] == "test impact"
+        assert json_response["reason"] == "test reason"
+    finally:
+        # Clean up dependency override
+        del app.dependency_overrides[get_ai_service]
 
 
 def test_upvote_article(test_user_and_articles, test_token):
