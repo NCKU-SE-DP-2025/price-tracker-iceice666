@@ -177,7 +177,13 @@ class NewsService:
 
             result.append(
                 {
-                    **article.__dict__,
+                    "id": article.id,
+                    "url": article.url,
+                    "title": article.title,
+                    "time": article.time,
+                    "content": article.content,
+                    "summary": article.summary,
+                    "reason": article.reason,
                     "upvotes": upvote_count,
                     "is_upvoted": is_upvoted,
                 }

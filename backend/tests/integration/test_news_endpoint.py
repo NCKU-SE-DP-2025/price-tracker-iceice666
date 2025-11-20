@@ -12,9 +12,8 @@ from src.main import app
 from src.models.database import Base, NewsArticle, User
 from src.schemas.news import NewsSummaryRequest
 from src.dependencies import get_db
+from src.config import settings
 
-SECRET_KEY = "1892dhianiandowqd0n"
-ALGORITHM = "HS256"
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
 # Create password context for tests
@@ -60,13 +59,20 @@ def test_user(clear_users):
 @pytest.fixture(scope="module")
 def test_token(test_user):
     access_token = jwt.encode(
-        {"sub": test_user.username}, SECRET_KEY, algorithm=ALGORITHM
+        {"sub": test_user.username}, settings.jwt_secret_key, algorithm=settings.jwt_algorithm
     )
     return access_token
 
 
 @pytest.fixture(scope="module")
-def test_articles():
+def clear_articles():
+    with next(override_get_db()) as db:
+        db.query(NewsArticle).delete()
+        db.commit()
+
+
+@pytest.fixture(scope="module")
+def test_articles(clear_articles):
     with next(override_get_db()) as db:
         article_1 = NewsArticle(
             url="https://example.com/test-news-1",
@@ -98,7 +104,7 @@ def test_user_and_articles(test_user, test_articles):
 
 
 def test_read_news(test_articles):
-    response = client.get("/api/v1/news/news")
+    response = client.get("/api/v1/news/")
     assert response.status_code == 200
     json_response = response.json()
     assert len(json_response) == 2
@@ -139,7 +145,7 @@ def test_search_news(mocker):
     mock_openai(mocker, "keywords")
 
     mock_fetch_news_data = mocker.patch(
-        "src.services.news_service.NewsService.fetch_news_data",
+        "src.services.news_service.fetch_news_data",
         return_value=[{"titleLink": "http://example.com/news1"}],
     )
 
@@ -168,20 +174,52 @@ def test_search_news(mocker):
     assert data[0]["content"] == "This is a test paragraph."
 
 
-def test_news_summary(mocker, test_token):
+def test_news_summary(test_token):
+    from unittest.mock import Mock
+    from src.services.ai_service import AIService
+    from src.dependencies import get_ai_service
+
     headers = {"Authorization": f"Bearer {test_token}"}
     openai_response = json.dumps({"影響": "test impact", "原因": "test reason"})
-    mock_openai(mocker, openai_response)
 
-    request_body = NewsSummaryRequest(content="Test news content")
-    response = client.post(
-        "/api/v1/news/news_summary", json=request_body.model_dump(), headers=headers
-    )
+    # Create a mock AIService with mocked OpenAI client
+    mock_ai_service = AIService.__new__(AIService)
+    mock_ai_service.enabled = True
+    mock_ai_service.model = "gpt-3.5-turbo"
 
-    assert response.status_code == 200
-    json_response = response.json()
-    assert json_response["summary"] == "test impact"
-    assert json_response["reason"] == "test reason"
+    # Create mock OpenAI client
+    mock_client = Mock()
+    mock_message = Mock()
+    mock_message.content = openai_response
+
+    mock_choice = Mock()
+    mock_choice.message = mock_message
+
+    mock_completion = Mock()
+    mock_completion.choices = [mock_choice]
+
+    mock_client.chat.completions.create.return_value = mock_completion
+    mock_ai_service.client = mock_client
+
+    # Override the dependency
+    def override_get_ai_service():
+        return mock_ai_service
+
+    app.dependency_overrides[get_ai_service] = override_get_ai_service
+
+    try:
+        request_body = NewsSummaryRequest(content="Test news content")
+        response = client.post(
+            "/api/v1/news/news_summary", json=request_body.model_dump(), headers=headers
+        )
+
+        assert response.status_code == 200
+        json_response = response.json()
+        assert json_response["summary"] == "test impact"
+        assert json_response["reason"] == "test reason"
+    finally:
+        # Clean up dependency override
+        del app.dependency_overrides[get_ai_service]
 
 
 def test_upvote_article(test_user_and_articles, test_token):

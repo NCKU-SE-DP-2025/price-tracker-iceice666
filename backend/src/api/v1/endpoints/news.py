@@ -9,7 +9,7 @@ from slowapi.util import get_remote_address
 
 from src.config import settings
 from src.models.database import User
-from src.schemas.news import NewsSummaryRequest, NewsSummaryResponse, PromptRequest
+from src.schemas.news import NewsArticleResponse, NewsSummaryRequest, NewsSummaryResponse, PromptRequest
 from src.services.ai_service import AIService
 from src.services.news_service import NewsService
 from src.dependencies import get_ai_service, get_current_user, get_news_service
@@ -20,7 +20,7 @@ router = APIRouter(tags=["news"])
 limiter = Limiter(key_func=get_remote_address)
 
 
-@router.get("/")
+@router.get("/", response_model=list[NewsArticleResponse])
 def get_news(
     news_service: NewsService = Depends(get_news_service),
 ) -> list[dict[str, Any]]:
@@ -35,7 +35,7 @@ def get_news(
     return news_service.get_all_news_with_upvotes(user_id=None)
 
 
-@router.get("/user_news")
+@router.get("/user_news", response_model=list[NewsArticleResponse])
 def get_user_news(
     current_user: User = Depends(get_current_user),
     news_service: NewsService = Depends(get_news_service),
