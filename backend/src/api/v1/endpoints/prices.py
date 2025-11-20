@@ -6,11 +6,11 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, Query
 
 from src.services.price_service import PriceService
-from src.utils.dependencies import get_price_service
+from src.dependencies import get_price_service
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/prices", tags=["prices"])
+router = APIRouter(tags=["prices"])
 
 
 @router.get("/necessities-price")

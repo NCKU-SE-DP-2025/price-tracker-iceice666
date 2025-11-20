@@ -26,7 +26,17 @@ def create_access_token(
 
     Returns:
         Encoded JWT token
+
+    Raises:
+        HTTPException: If JWT_SECRET_KEY is not configured
     """
+    if not settings.jwt_secret_key:
+        logger.error("JWT_SECRET_KEY not configured - cannot create access token")
+        raise HTTPException(
+            status_code=500,
+            detail="Authentication is not properly configured. Please set JWT_SECRET_KEY in .env file"
+        )
+
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now() + expires_delta
@@ -35,7 +45,8 @@ def create_access_token(
             minutes=settings.access_token_expire_minutes
         )
     to_encode.update([("exp", expire)])
-    logger.info(f"Creating access token with expiry: {expire}")
+    # Security: Don't log token expiry time to prevent timing attacks
+    logger.info("Access token created successfully")
     encoded_jwt = jwt.encode(
         to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm
     )
@@ -52,8 +63,15 @@ def decode_token(token: str) -> str:
         Username from token
 
     Raises:
-        HTTPException: If token is invalid or expired
+        HTTPException: If token is invalid, expired, or JWT_SECRET_KEY is not configured
     """
+    if not settings.jwt_secret_key:
+        logger.error("JWT_SECRET_KEY not configured - cannot decode token")
+        raise HTTPException(
+            status_code=500,
+            detail="Authentication is not properly configured. Please set JWT_SECRET_KEY in .env file"
+        )
+
     try:
         payload = jwt.decode(
             token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
@@ -117,12 +135,14 @@ class AuthService:
             HTTPException: If username already exists
         """
         if self.user_repository.user_exists(username):
-            logger.warning(f"Registration failed: username '{username}' already exists")
+            # Security: Don't log username to prevent enumeration attacks
+            logger.warning("Registration attempt with existing username")
             raise HTTPException(status_code=400, detail="Username already registered")
 
         hashed_password = self.hash_password(password)
         user = self.user_repository.create_user(username, hashed_password)
-        logger.info(f"User registered successfully: {username}")
+        # Security: Don't log username to prevent information disclosure
+        logger.info("User registration completed successfully")
         return user
 
     def authenticate_user(self, username: str, password: str) -> User:
@@ -140,14 +160,17 @@ class AuthService:
         """
         user = self.user_repository.get_user_by_username(username)
         if not user:
-            logger.warning(f"Authentication failed: user '{username}' not found")
+            # Security: Generic message prevents username enumeration
+            logger.warning("Authentication attempt failed")
             raise HTTPException(status_code=401, detail="Invalid username or password")
 
         if not self.verify_password(password, user.hashed_password):
-            logger.warning(f"Authentication failed: invalid password for '{username}'")
+            # Security: Generic message prevents username enumeration
+            logger.warning("Authentication attempt failed")
             raise HTTPException(status_code=401, detail="Invalid username or password")
 
-        logger.info(f"User authenticated successfully: {username}")
+        # Security: Don't log username to prevent information disclosure
+        logger.info("User authentication successful")
         return user
 
     def get_current_user(self, token: str) -> User:

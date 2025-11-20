@@ -1,5 +1,6 @@
 """FastAPI dependency injection functions."""
 
+from functools import lru_cache
 from typing import Generator
 
 from fastapi import Depends
@@ -71,20 +72,22 @@ def get_auth_service(
     return AuthService(user_repository)
 
 
+@lru_cache()
 def get_ai_service() -> AIService:
-    """Get AI service instance.
+    """Get AI service instance (singleton).
 
     Returns:
-        AIService instance
+        AIService instance (cached)
     """
     return AIService()
 
 
+@lru_cache()
 def get_web_scraper() -> WebScraper:
-    """Get web scraper instance.
+    """Get web scraper instance (singleton).
 
     Returns:
-        WebScraper instance
+        WebScraper instance (cached)
     """
     return WebScraper()
 
