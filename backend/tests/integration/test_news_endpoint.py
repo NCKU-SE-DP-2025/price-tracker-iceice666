@@ -1,25 +1,33 @@
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, StaticPool
-from sqlalchemy.orm import sessionmaker
 import json
-from jose import jwt
-from main import app
-from main import Base, NewsArticle, User, session_opener, user_news_association_table
-from main import NewsSumaryRequestSchema, PromptRequest
-from main import pwd_context
 from unittest.mock import Mock
 
+import pytest
+from fastapi.testclient import TestClient
+from jose import jwt
+from passlib.context import CryptContext
+from sqlalchemy import create_engine, StaticPool
+from sqlalchemy.orm import sessionmaker
+
+from main import app
+from src.models.database import Base, NewsArticle, User
+from src.schemas.news import NewsSummaryRequest
+from src.utils.dependencies import get_db
 
 SECRET_KEY = "1892dhianiandowqd0n"
 ALGORITHM = "HS256"
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}, poolclass=StaticPool)
+
+# Create password context for tests
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}, poolclass=StaticPool
+)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
 
 
-def override_session_opener():
+def override_get_db():
     try:
         db = TestingSessionLocal()
         yield db
@@ -27,20 +35,21 @@ def override_session_opener():
         db.close()
 
 
-app.dependency_overrides[session_opener] = override_session_opener
+app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 @pytest.fixture(scope="module")
 def clear_users():
-    with next(override_session_opener()) as db:
+    with next(override_get_db()) as db:
         db.query(User).delete()
         db.commit()
+
 
 @pytest.fixture(scope="module")
 def test_user(clear_users):
     hashed_password = pwd_context.hash("testpassword")
 
-    with next(override_session_opener()) as db:
+    with next(override_get_db()) as db:
         user = User(username="testuser", hashed_password=hashed_password)
         db.add(user)
         db.commit()
@@ -50,13 +59,15 @@ def test_user(clear_users):
 
 @pytest.fixture(scope="module")
 def test_token(test_user):
-    access_token = jwt.encode({"sub": test_user.username}, SECRET_KEY, algorithm=ALGORITHM)
+    access_token = jwt.encode(
+        {"sub": test_user.username}, SECRET_KEY, algorithm=ALGORITHM
+    )
     return access_token
 
 
 @pytest.fixture(scope="module")
 def test_articles():
-    with next(override_session_opener()) as db:
+    with next(override_get_db()) as db:
         article_1 = NewsArticle(
             url="https://example.com/test-news-1",
             title="Test News 1",
@@ -109,7 +120,7 @@ def test_read_user_news(test_user, test_token, test_articles):
     assert json_response[1]["is_upvoted"] is False
 
 def mock_openai(mocker, return_content):
-    mock_openai_client = mocker.patch('main.OpenAI')
+    mock_openai_client = mocker.patch('src.services.ai_service.OpenAI')
 
     mock_message = Mock()
     mock_message.content = return_content
@@ -127,11 +138,12 @@ def mock_openai(mocker, return_content):
 def test_search_news(mocker):
     mock_openai(mocker, "keywords")
 
-    mock_get_new_info = mocker.patch("main.get_new_info", return_value=[
-        {"titleLink": "http://example.com/news1"}
-    ])
+    mock_fetch_news_data = mocker.patch(
+        "src.services.news_service.NewsService.fetch_news_data",
+        return_value=[{"titleLink": "http://example.com/news1"}],
+    )
 
-    mock_get = mocker.patch("main.requests.get", return_value=mocker.Mock(
+    mock_get = mocker.patch("src.utils.web_scraper.requests.get", return_value=mocker.Mock(
         text="""
         <html>
         <h1 class="article-content__title">Test Title</h1>
@@ -161,8 +173,10 @@ def test_news_summary(mocker, test_token):
     openai_response = json.dumps({"影響": "test impact", "原因": "test reason"})
     mock_openai(mocker, openai_response)
 
-    request_body = NewsSumaryRequestSchema(content="Test news content")
-    response = client.post("/api/v1/news/news_summary", json=request_body.dict(), headers=headers)
+    request_body = NewsSummaryRequest(content="Test news content")
+    response = client.post(
+        "/api/v1/news/news_summary", json=request_body.model_dump(), headers=headers
+    )
 
     assert response.status_code == 200
     json_response = response.json()

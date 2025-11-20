@@ -1,0 +1,170 @@
+"""Authentication service for user management and JWT tokens."""
+
+import logging
+from datetime import datetime, timedelta
+from typing import Optional
+
+from fastapi import HTTPException
+from jose import jwt
+from passlib.context import CryptContext
+
+from src.config import settings
+from src.models.database import User
+from src.repositories.user_repository import UserRepository
+
+logger = logging.getLogger(__name__)
+
+
+def create_access_token(
+        data: dict[str, str], expires_delta: Optional[timedelta] = None
+) -> str:
+    """Create a JWT access token.
+
+    Args:
+        data: Data to encode in token (typically {'sub': username})
+        expires_delta: Token expiration time delta
+
+    Returns:
+        Encoded JWT token
+    """
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now() + expires_delta
+    else:
+        expire = datetime.now() + timedelta(
+            minutes=settings.access_token_expire_minutes
+        )
+    to_encode.update([("exp", expire)])
+    logger.info(f"Creating access token with expiry: {expire}")
+    encoded_jwt = jwt.encode(
+        to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm
+    )
+    return encoded_jwt
+
+
+def decode_token(token: str) -> str:
+    """Decode a JWT token and extract username.
+
+    Args:
+        token: JWT token
+
+    Returns:
+        Username from token
+
+    Raises:
+        HTTPException: If token is invalid or expired
+    """
+    try:
+        payload = jwt.decode(
+            token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
+        )
+        username: Optional[str] = payload.get("sub")
+        if username is None:
+            logger.error("Token payload missing 'sub' field")
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return username
+    except jwt.JWTError as e:
+        logger.error(f"JWT decode error: {e}")
+        raise HTTPException(status_code=401, detail="Invalid or expired token") from e
+
+
+class AuthService:
+    """Handles user authentication and JWT token management."""
+
+    def __init__(self, user_repository: UserRepository) -> None:
+        """Initialize authentication service.
+
+        Args:
+            user_repository: UserRepository instance for database operations
+        """
+        self.user_repository = user_repository
+        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+    def hash_password(self, password: str) -> str:
+        """Hash a plain text password.
+
+        Args:
+            password: Plain text password
+
+        Returns:
+            Hashed password
+        """
+        return self.pwd_context.hash(password)
+
+    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+        """Verify a password against its hash.
+
+        Args:
+            plain_password: Plain text password
+            hashed_password: Hashed password to compare against
+
+        Returns:
+            True if password matches, False otherwise
+        """
+        return self.pwd_context.verify(plain_password, hashed_password)
+
+    def register_user(self, username: str, password: str) -> User:
+        """Register a new user.
+
+        Args:
+            username: Unique username
+            password: Plain text password
+
+        Returns:
+            Created User instance
+
+        Raises:
+            HTTPException: If username already exists
+        """
+        if self.user_repository.user_exists(username):
+            logger.warning(f"Registration failed: username '{username}' already exists")
+            raise HTTPException(status_code=400, detail="Username already registered")
+
+        hashed_password = self.hash_password(password)
+        user = self.user_repository.create_user(username, hashed_password)
+        logger.info(f"User registered successfully: {username}")
+        return user
+
+    def authenticate_user(self, username: str, password: str) -> User:
+        """Authenticate a user by username and password.
+
+        Args:
+            username: Username
+            password: Plain text password
+
+        Returns:
+            User instance if authentication successful
+
+        Raises:
+            HTTPException: If credentials are invalid
+        """
+        user = self.user_repository.get_user_by_username(username)
+        if not user:
+            logger.warning(f"Authentication failed: user '{username}' not found")
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+
+        if not self.verify_password(password, user.hashed_password):
+            logger.warning(f"Authentication failed: invalid password for '{username}'")
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+
+        logger.info(f"User authenticated successfully: {username}")
+        return user
+
+    def get_current_user(self, token: str) -> User:
+        """Get current user from JWT token.
+
+        Args:
+            token: JWT token
+
+        Returns:
+            User instance
+
+        Raises:
+            HTTPException: If token is invalid or user not found
+        """
+        username = decode_token(token)
+        user = self.user_repository.get_user_by_username(username)
+        if not user:
+            logger.error(f"User from token not found: {username}")
+            raise HTTPException(status_code=401, detail="User not found")
+        return user
