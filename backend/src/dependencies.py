@@ -95,19 +95,17 @@ def get_web_scraper() -> WebScraper:
 def get_news_service(
     news_repository: NewsRepository = Depends(get_news_repository),
     ai_service: AIService = Depends(get_ai_service),
-    web_scraper: WebScraper = Depends(get_web_scraper),
 ) -> NewsService:
     """Get news service instance.
 
     Args:
         news_repository: NewsRepository instance
         ai_service: AIService instance
-        web_scraper: WebScraper instance
 
     Returns:
         NewsService instance
     """
-    return NewsService(news_repository, ai_service, web_scraper)
+    return NewsService(news_repository, ai_service)
 
 
 def get_price_service() -> PriceService:

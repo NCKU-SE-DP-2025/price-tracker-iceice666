@@ -22,34 +22,46 @@ limiter = Limiter(key_func=get_remote_address)
 
 @router.get("/", response_model=list[NewsArticleResponse])
 def get_news(
+    skip: int = 0,
+    limit: int = 100,
     news_service: NewsService = Depends(get_news_service),
 ) -> list[dict[str, Any]]:
-    """Get all news articles (public endpoint).
+    """Get news articles with pagination (public endpoint).
 
     Args:
+        skip: Number of articles to skip (default: 0)
+        limit: Maximum number of articles to return (default: 100, max: 1000)
         news_service: News service
 
     Returns:
         List of news articles with upvote information
     """
-    return news_service.get_all_news_with_upvotes(user_id=None)
+    # Cap the limit to prevent excessive data retrieval
+    limit = min(limit, 1000)
+    return news_service.get_all_news_with_upvotes(user_id=None, skip=skip, limit=limit)
 
 
 @router.get("/user_news", response_model=list[NewsArticleResponse])
 def get_user_news(
+    skip: int = 0,
+    limit: int = 100,
     current_user: User = Depends(get_current_user),
     news_service: NewsService = Depends(get_news_service),
 ) -> list[dict[str, Any]]:
-    """Get all news articles with user's upvote status (authenticated endpoint).
+    """Get news articles with user's upvote status and pagination (authenticated endpoint).
 
     Args:
+        skip: Number of articles to skip (default: 0)
+        limit: Maximum number of articles to return (default: 100, max: 1000)
         current_user: Current authenticated user
         news_service: News service
 
     Returns:
         List of news articles with upvote information including user's upvote status
     """
-    return news_service.get_all_news_with_upvotes(user_id=current_user.id)
+    # Cap the limit to prevent excessive data retrieval
+    limit = min(limit, 1000)
+    return news_service.get_all_news_with_upvotes(user_id=current_user.id, skip=skip, limit=limit)
 
 
 @router.post("/search_news")
