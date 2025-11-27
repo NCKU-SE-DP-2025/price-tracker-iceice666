@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from src.main import app
 from src.models.database import Base, NewsArticle, User
+from src.crawler import Headline
 from src.schemas.news import NewsSummaryRequest
 from src.dependencies import get_db
 from src.config import settings
@@ -146,7 +147,7 @@ def test_search_news(mocker):
 
     mock_fetch_news_data = mocker.patch(
         "src.services.news_service.fetch_news_data",
-        return_value=[{"titleLink": "http://example.com/news1"}],
+        return_value=[Headline(title="Test News", url="http://example.com/news1")],
     )
 
     mock_get = mocker.patch("src.utils.web_scraper.requests.get", return_value=mocker.Mock(
