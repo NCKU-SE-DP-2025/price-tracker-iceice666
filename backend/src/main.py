@@ -54,10 +54,10 @@ if settings.environment == "production":
     app.add_middleware(HTTPSRedirectMiddleware)
 
     # Prevent host header injection attacks
-    # TODO: Update with actual production domains
+    # Configure via TRUSTED_HOSTS environment variable (comma-separated domains)
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["yourdomain.com", "www.yourdomain.com", "api.yourdomain.com"]
+        allowed_hosts=settings.trusted_hosts
     )
 
 # 4. CORS Configuration (restrictive)

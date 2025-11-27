@@ -54,13 +54,25 @@ class NewsRepository:
         self.db.refresh(news_article)
         return news_article
 
-    def get_all_news(self) -> list[NewsArticle]:
-        """Get all news articles ordered by time (descending).
+    def get_all_news(
+        self, skip: int = 0, limit: int = 100
+    ) -> list[NewsArticle]:
+        """Get news articles ordered by time (descending) with pagination.
+
+        Args:
+            skip: Number of articles to skip (for pagination)
+            limit: Maximum number of articles to return (default 100)
 
         Returns:
             List of NewsArticle instances
         """
-        return self.db.query(NewsArticle).order_by(NewsArticle.time.desc()).all()
+        return (
+            self.db.query(NewsArticle)
+            .order_by(NewsArticle.time.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def get_news_by_id(self, news_id: int) -> Optional[NewsArticle]:
         """Get a news article by ID.

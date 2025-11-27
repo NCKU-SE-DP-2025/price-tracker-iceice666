@@ -39,9 +39,9 @@ def create_access_token(
 
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now() + expires_delta
+        expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.now() + timedelta(
+        expire = datetime.utcnow() + timedelta(
             minutes=settings.access_token_expire_minutes
         )
     to_encode.update([("exp", expire)])
@@ -188,6 +188,7 @@ class AuthService:
         username = decode_token(token)
         user = self.user_repository.get_user_by_username(username)
         if not user:
-            logger.error(f"User from token not found: {username}")
+            # Security: Don't log username to prevent information disclosure
+            logger.error("User from token not found in database")
             raise HTTPException(status_code=401, detail="User not found")
         return user
